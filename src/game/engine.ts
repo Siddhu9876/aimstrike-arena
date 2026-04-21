@@ -36,6 +36,10 @@ interface Enemy {
   hp: number; maxHp: number;
   speed: number; damage: number;
   color: string;
+  glow: string;
+  shape: "circle" | "triangle" | "square" | "diamond" | "hex";
+  rot: number;
+  rotSpeed: number;
   hitFlash: number;
 }
 interface Bullet {
@@ -311,15 +315,28 @@ export class GameEngine {
     if (side === 1) { x = r.width + 20; y = Math.random() * r.height; }
     if (side === 2) { x = Math.random() * r.width; y = -20; }
     if (side === 3) { x = Math.random() * r.width; y = r.height + 20; }
-    const tier = Math.random();
     const d = this.difficulty;
-    let radius = 14, hp = 30 * d, speed = 60 + d * 8, damage = 10, color = "hsl(var(--danger))";
-    if (tier > 0.85) { // brute
-      radius = 22; hp = 80 * d; speed = 40 + d * 4; damage = 18; color = "hsl(var(--warn))";
-    } else if (tier > 0.6) { // runner
-      radius = 11; hp = 18 * d; speed = 110 + d * 10; damage = 8; color = "hsl(0 70% 70%)";
-    }
-    this.enemies.push({ x, y, r: radius, hp, maxHp: hp, speed, damage, color, hitFlash: 0 });
+    // 5 colorful enemy archetypes
+    const archetypes = [
+      { name: "grunt",   radius: 14, hp: 30 * d, speed: 70 + d * 8,  damage: 10, color: "#ff3b5c", glow: "#ff7a8e", shape: "circle"   as const },
+      { name: "runner",  radius: 11, hp: 18 * d, speed: 130 + d * 10, damage: 8,  color: "#ff8a00", glow: "#ffc266", shape: "triangle" as const },
+      { name: "brute",   radius: 24, hp: 90 * d, speed: 42 + d * 4,  damage: 20, color: "#a855f7", glow: "#d8b4fe", shape: "square"   as const },
+      { name: "shocker", radius: 13, hp: 26 * d, speed: 90 + d * 8,  damage: 12, color: "#22d3ee", glow: "#a5f3fc", shape: "diamond"  as const },
+      { name: "wasp",    radius: 12, hp: 22 * d, speed: 110 + d * 9, damage: 9,  color: "#facc15", glow: "#fde68a", shape: "hex"      as const },
+    ];
+    // weighted: more grunts/runners/wasps, fewer brutes
+    const weights = [0.30, 0.22, 0.13, 0.18, 0.17];
+    const roll = Math.random();
+    let acc = 0; let pick = archetypes[0];
+    for (let i = 0; i < archetypes.length; i++) { acc += weights[i]; if (roll <= acc) { pick = archetypes[i]; break; } }
+    this.enemies.push({
+      x, y, r: pick.radius, hp: pick.hp, maxHp: pick.hp,
+      speed: pick.speed, damage: pick.damage,
+      color: pick.color, glow: pick.glow, shape: pick.shape,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 4,
+      hitFlash: 0,
+    });
   }
 
   private publicState(): PublicState {
@@ -361,37 +378,66 @@ export class GameEngine {
     ctx.arc(this.px, this.py, 220, 0, Math.PI * 2);
     ctx.stroke();
 
-    // bullets
-    ctx.fillStyle = "hsl(var(--hud))";
+    // bullets — bright glowing tracers
     for (const b of this.bullets) {
-      ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowColor = "hsl(var(--hud-glow))"; ctx.shadowBlur = 12;
-      ctx.fill(); ctx.shadowBlur = 0;
+      const ang = Math.atan2(b.vy, b.vx);
+      // tracer trail
+      const trailLen = 18;
+      const tx = b.x - Math.cos(ang) * trailLen;
+      const ty = b.y - Math.sin(ang) * trailLen;
+      const grad = ctx.createLinearGradient(tx, ty, b.x, b.y);
+      grad.addColorStop(0, "rgba(190, 255, 80, 0)");
+      grad.addColorStop(1, "rgba(220, 255, 120, 0.95)");
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(b.x, b.y); ctx.stroke();
+      // glowing core
+      ctx.shadowColor = "#d4ff5c"; ctx.shadowBlur = 16;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(b.x, b.y, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
     }
 
     // coins
     for (const c of this.coins) {
-      ctx.fillStyle = "hsl(var(--gold))";
+      ctx.shadowColor = "#fbbf24"; ctx.shadowBlur = 10;
+      ctx.fillStyle = "#fbbf24";
       ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "hsl(45 100% 80%)"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "#fff7cc"; ctx.lineWidth = 1.5; ctx.stroke();
     }
 
-    // enemies
+    // enemies — colorful shapes with glow
     for (const e of this.enemies) {
-      ctx.fillStyle = e.hitFlash > 0 ? "white" : e.color;
-      ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill();
+      e.rot += e.rotSpeed * 0.016;
+      const fill = e.hitFlash > 0 ? "#ffffff" : e.color;
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.rotate(e.rot);
+      ctx.shadowColor = e.glow;
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = "rgba(255,255,255,0.6)";
+      ctx.lineWidth = 1.5;
+      this.drawShape(e.shape, e.r);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.stroke();
+      ctx.restore();
       // hp bar
       const w = e.r * 2;
-      ctx.fillStyle = "hsla(0,0%,0%,0.5)";
-      ctx.fillRect(e.x - w / 2, e.y - e.r - 8, w, 4);
-      ctx.fillStyle = "hsl(var(--danger))";
-      ctx.fillRect(e.x - w / 2, e.y - e.r - 8, w * (e.hp / e.maxHp), 4);
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(e.x - w / 2, e.y - e.r - 9, w, 4);
+      ctx.fillStyle = e.color;
+      ctx.fillRect(e.x - w / 2, e.y - e.r - 9, w * (e.hp / e.maxHp), 4);
     }
 
     // player
     const ang = Math.atan2(this.my - this.py, this.mx - this.px);
     // aim line
-    ctx.strokeStyle = "hsla(86, 95%, 55%, 0.35)";
+    ctx.strokeStyle = "rgba(190, 255, 80, 0.45)";
+    ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 6]);
     ctx.beginPath();
     ctx.moveTo(this.px + Math.cos(ang) * (this.pr + 6), this.py + Math.sin(ang) * (this.pr + 6));
@@ -399,19 +445,34 @@ export class GameEngine {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // body
-    ctx.fillStyle = this.invuln > 0 && Math.floor(this.invuln * 20) % 2 === 0 ? "hsl(0 80% 70%)" : "hsl(var(--primary))";
+    // outer aura ring
+    ctx.strokeStyle = "rgba(190, 255, 80, 0.5)";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(this.px, this.py, this.pr + 6, 0, Math.PI * 2); ctx.stroke();
+
+    // body — glowing neon green
+    const flashing = this.invuln > 0 && Math.floor(this.invuln * 20) % 2 === 0;
+    ctx.shadowColor = flashing ? "#ff5c7a" : "#c6ff3d";
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = flashing ? "#ff5c7a" : "#c6ff3d";
     ctx.beginPath(); ctx.arc(this.px, this.py, this.pr, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // inner core
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(this.px, this.py, this.pr * 0.45, 0, Math.PI * 2); ctx.fill();
     // gun
-    ctx.fillStyle = "hsl(20 12% 18%)";
+    ctx.fillStyle = "#1a1a14";
+    ctx.strokeStyle = "#c6ff3d";
+    ctx.lineWidth = 1.5;
     ctx.save();
     ctx.translate(this.px, this.py);
     ctx.rotate(ang);
-    ctx.fillRect(this.pr - 2, -3, 16, 6);
+    ctx.fillRect(this.pr - 2, -4, 18, 8);
+    ctx.strokeRect(this.pr - 2, -4, 18, 8);
     ctx.restore();
 
     // crosshair
-    ctx.strokeStyle = "hsl(var(--hud))";
+    ctx.strokeStyle = "#c6ff3d";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.arc(this.mx, this.my, 10, 0, Math.PI * 2);
@@ -426,9 +487,35 @@ export class GameEngine {
     ctx.textAlign = "center";
     for (const p of this.pops) {
       ctx.globalAlpha = Math.min(1, p.life * 1.5);
-      ctx.fillStyle = p.color;
+      ctx.fillStyle = p.color.startsWith("hsl(var") ? "#c6ff3d" : p.color;
       ctx.fillText(p.text, p.x, p.y - (0.8 - p.life) * 30);
     }
     ctx.globalAlpha = 1;
+  }
+
+  private drawShape(shape: Enemy["shape"], r: number) {
+    const ctx = this.ctx;
+    ctx.beginPath();
+    if (shape === "circle") {
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+    } else if (shape === "triangle") {
+      for (let i = 0; i < 3; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI * 2) / 3;
+        const x = Math.cos(a) * r, y = Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    } else if (shape === "square") {
+      ctx.rect(-r, -r, r * 2, r * 2);
+    } else if (shape === "diamond") {
+      ctx.moveTo(0, -r); ctx.lineTo(r, 0); ctx.lineTo(0, r); ctx.lineTo(-r, 0); ctx.closePath();
+    } else if (shape === "hex") {
+      for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI * 2) / 6;
+        const x = Math.cos(a) * r, y = Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    }
   }
 }
