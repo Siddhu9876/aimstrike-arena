@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        display: ['Orbitron', 'system-ui', 'sans-serif'],
+        body: ['Rajdhani', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,6 +61,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        hud: { DEFAULT: "hsl(var(--hud))", glow: "hsl(var(--hud-glow))" },
+        danger: "hsl(var(--danger))",
+        warn: "hsl(var(--warn))",
+        bronze: "hsl(var(--bronze))",
+        silver: "hsl(var(--silver))",
+        gold: "hsl(var(--gold))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -80,10 +90,20 @@ export default {
             height: "0",
           },
         },
+        "float-up": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 0 0 hsl(var(--primary) / 0.5)" },
+          "50%": { boxShadow: "0 0 0 12px hsl(var(--primary) / 0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "float-up": "float-up 0.3s var(--transition-snap) both",
+        "pulse-glow": "pulse-glow 2s ease-out infinite",
       },
     },
   },
