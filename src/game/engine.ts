@@ -202,8 +202,22 @@ export class GameEngine {
 
   private update(dt: number) {
     this.timeSec += dt;
-    // dynamic difficulty
-    this.difficulty = 1 + this.timeSec / 30 + (this.cfg.level - 1) * 0.1;
+    // dynamic difficulty (50% slower ramp for an easier start)
+    this.difficulty = 1 + this.timeSec / 60 + (this.cfg.level - 1) * 0.1;
+
+    // keyboard movement — arrow keys / WASD act as the player "cursor"
+    const r = this.canvas.getBoundingClientRect();
+    let dxK = 0, dyK = 0;
+    if (this.keys["arrowleft"] || this.keys["a"]) dxK -= 1;
+    if (this.keys["arrowright"] || this.keys["d"]) dxK += 1;
+    if (this.keys["arrowup"] || this.keys["w"]) dyK -= 1;
+    if (this.keys["arrowdown"] || this.keys["s"]) dyK += 1;
+    if (dxK !== 0 || dyK !== 0) {
+      const len = Math.hypot(dxK, dyK) || 1;
+      const speed = 260;
+      this.px = Math.max(this.pr, Math.min(r.width - this.pr, this.px + (dxK / len) * speed * dt));
+      this.py = Math.max(this.pr, Math.min(r.height - this.pr, this.py + (dyK / len) * speed * dt));
+    }
 
     // combo decay
     this.comboTimer -= dt;
@@ -212,8 +226,8 @@ export class GameEngine {
     // spawn enemies in waves
     this.spawnTimer -= dt;
     this.waveTimer += dt;
-    if (this.waveTimer > 12) { this.wave += 1; this.waveTimer = 0; }
-    const spawnInterval = Math.max(0.35, 1.4 - this.difficulty * 0.12);
+    if (this.waveTimer > 16) { this.wave += 1; this.waveTimer = 0; }
+    const spawnInterval = Math.max(0.55, 2.0 - this.difficulty * 0.12);
     if (this.spawnTimer <= 0) {
       this.spawnEnemy();
       this.spawnTimer = spawnInterval;
@@ -223,7 +237,7 @@ export class GameEngine {
     const def = WEAPONS[this.cfg.weapon];
     const stats = weaponStats(def, this.cfg.upgradeLevel);
     this.fireTimer -= dt;
-    if (this.mouseDown && this.fireTimer <= 0) {
+    if ((this.mouseDown || this.spaceDown) && this.fireTimer <= 0) {
       this.fireTimer = 1 / stats.fireRate;
       const baseAng = Math.atan2(this.my - this.py, this.mx - this.px);
       for (let i = 0; i < def.bullets; i++) {
