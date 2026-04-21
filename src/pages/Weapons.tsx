@@ -1,6 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { usePlayer } from "@/store/playerStore";
 import { WEAPONS, WeaponId, weaponStats, upgradeCost } from "@/game/weapons";
+import { WEAPON_IMAGES } from "@/assets/weapons";
 import { Button } from "@/components/ui/button";
 import { Check, Lock, Coins, ArrowUp } from "lucide-react";
 import { toast } from "sonner";
@@ -36,10 +37,22 @@ export default function Weapons() {
             const equipped = p.currentWeapon === id;
             return (
               <div key={id} className={`hud-panel corner-frame p-5 space-y-4 ${equipped ? "ring-1 ring-primary/60" : ""}`}>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="font-display font-bold text-xl tracking-wider">{def.name}</div>
-                    <div className="text-xs text-muted-foreground">{def.description}</div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="size-20 shrink-0 bg-black/60 border border-border/60 overflow-hidden">
+                      <img
+                        src={WEAPON_IMAGES[id]}
+                        alt={`${def.name} weapon icon`}
+                        loading="lazy"
+                        width={512}
+                        height={512}
+                        className={`w-full h-full object-contain ${!ws.unlocked ? "opacity-30 grayscale" : ""}`}
+                      />
+                    </div>
+                    <div>
+                      <div className="font-display font-bold text-xl tracking-wider">{def.name}</div>
+                      <div className="text-xs text-muted-foreground">{def.description}</div>
+                    </div>
                   </div>
                   {ws.unlocked ? (
                     equipped ? (

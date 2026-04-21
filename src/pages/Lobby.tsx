@@ -2,10 +2,12 @@ import { Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { StatChip } from "@/components/StatChip";
 import { usePlayer } from "@/store/playerStore";
-import { WEAPONS } from "@/game/weapons";
+import { WEAPONS, WeaponId, upgradeCost } from "@/game/weapons";
+import { WEAPON_IMAGES } from "@/assets/weapons";
 import { maxHpForLevel, rankFromPoints, xpForNextLevel } from "@/game/progression";
-import { Heart, Coins, Trophy, Zap, Crosshair, Target, ShoppingBag, BarChart3, Swords, ListChecks } from "lucide-react";
+import { Heart, Coins, Trophy, Zap, Crosshair, Target, ShoppingBag, BarChart3, Swords, ListChecks, Lock, Check, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const NavCard = ({ to, icon: Icon, title, sub }: { to: string; icon: React.ComponentType<{ className?: string }>; title: string; sub: string }) => (
   <Link to={to} className="hud-panel corner-frame p-5 flex flex-col gap-3 group hover:border-primary/60 transition-all">
@@ -72,6 +74,66 @@ export default function Lobby() {
           <NavCard to="/missions" icon={ListChecks} title="Missions" sub={`${activeMissions} active`} />
           <NavCard to="/shop" icon={ShoppingBag} title="Shop" sub="Spend coins" />
           <NavCard to="/stats" icon={BarChart3} title="Stats" sub="Performance" />
+        </div>
+
+        {/* Weapon Purchase Showcase */}
+        <div>
+          <div className="flex items-end justify-between mb-3">
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Armory</div>
+              <h2 className="font-display text-2xl font-bold mt-1">Weapon Purchase</h2>
+            </div>
+            <Link to="/weapons" className="text-xs text-hud font-display tracking-wider hover:underline">VIEW ALL →</Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {(Object.keys(WEAPONS) as WeaponId[]).map((id) => {
+              const def = WEAPONS[id];
+              const ws = p.weapons[id];
+              const cost = upgradeCost(ws.upgradeLevel);
+              const equipped = p.currentWeapon === id;
+              const locked = !ws.unlocked;
+              const maxed = ws.upgradeLevel >= 10;
+              return (
+                <div key={id} className={`hud-panel corner-frame p-3 flex flex-col gap-3 ${equipped ? "ring-1 ring-primary/60" : ""}`}>
+                  <div className="relative aspect-square overflow-hidden bg-black/60 border border-border/60">
+                    <img
+                      src={WEAPON_IMAGES[id]}
+                      alt={`${def.name} weapon icon`}
+                      loading="lazy"
+                      width={512}
+                      height={512}
+                      className={`w-full h-full object-contain transition-transform ${locked ? "opacity-30 grayscale" : "group-hover:scale-105"}`}
+                    />
+                    {locked && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs px-2 py-1 bg-muted/90 text-muted-foreground font-display tracking-wider flex items-center gap-1">
+                          <Lock className="size-3" /> L{def.unlockLevel}
+                        </span>
+                      </div>
+                    )}
+                    {equipped && (
+                      <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 bg-primary/30 text-hud font-display tracking-wider">EQUIPPED</span>
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-display font-bold text-sm tracking-wider truncate">{def.name}</div>
+                    <div className="text-[10px] text-muted-foreground">Lv {ws.upgradeLevel}/10</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    disabled={locked || maxed || p.coins < cost}
+                    onClick={() => {
+                      if (p.upgradeWeapon(id, cost)) toast.success(`${def.name} upgraded`);
+                      else toast.error("Not enough coins");
+                    }}
+                    className="btn-glow font-display tracking-wider text-xs"
+                  >
+                    {maxed ? <><Check className="size-3 mr-1" /> MAX</> : <><ArrowUp className="size-3 mr-1" /> {cost}c</>}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </Layout>
