@@ -70,6 +70,8 @@ export class GameEngine {
   private px = 0; private py = 0; private pr = 14;
   private mx = 0; private my = 0;
   private mouseDown = false;
+  private spaceDown = false;
+  private keys: Record<string, boolean> = {};
   private hp: number; private maxHp: number;
   private enemies: Enemy[] = [];
   private bullets: Bullet[] = [];
