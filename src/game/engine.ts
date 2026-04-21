@@ -352,11 +352,12 @@ export class GameEngine {
     const d = this.difficulty;
     // 5 colorful enemy archetypes
     const archetypes = [
-      { name: "grunt",   radius: 14, hp: 30 * d, speed: 70 + d * 8,  damage: 10, color: "#ff3b5c", glow: "#ff7a8e", shape: "circle"   as const },
-      { name: "runner",  radius: 11, hp: 18 * d, speed: 130 + d * 10, damage: 8,  color: "#ff8a00", glow: "#ffc266", shape: "triangle" as const },
-      { name: "brute",   radius: 24, hp: 90 * d, speed: 42 + d * 4,  damage: 20, color: "#a855f7", glow: "#d8b4fe", shape: "square"   as const },
-      { name: "shocker", radius: 13, hp: 26 * d, speed: 90 + d * 8,  damage: 12, color: "#22d3ee", glow: "#a5f3fc", shape: "diamond"  as const },
-      { name: "wasp",    radius: 12, hp: 22 * d, speed: 110 + d * 9, damage: 9,  color: "#facc15", glow: "#fde68a", shape: "hex"      as const },
+      // damage scales with size/color: small/fast = 5-8, medium = 10-12, large brute = 20 (max)
+      { name: "runner",  radius: 11, hp: 18 * d, speed: 130 + d * 10, damage: 5,  color: "#ff8a00", glow: "#ffc266", shape: "triangle" as const },
+      { name: "wasp",    radius: 12, hp: 22 * d, speed: 110 + d * 9,  damage: 7,  color: "#facc15", glow: "#fde68a", shape: "hex"      as const },
+      { name: "shocker", radius: 13, hp: 26 * d, speed: 90 + d * 8,   damage: 10, color: "#22d3ee", glow: "#a5f3fc", shape: "diamond"  as const },
+      { name: "grunt",   radius: 14, hp: 30 * d, speed: 70 + d * 8,   damage: 12, color: "#ff3b5c", glow: "#ff7a8e", shape: "circle"   as const },
+      { name: "brute",   radius: 24, hp: 90 * d, speed: 42 + d * 4,   damage: 20, color: "#a855f7", glow: "#d8b4fe", shape: "square"   as const },
     ];
     // weighted: more grunts/runners/wasps, fewer brutes
     const weights = [0.30, 0.22, 0.13, 0.18, 0.17];
