@@ -359,8 +359,8 @@ export class GameEngine {
       { name: "grunt",   radius: 14, hp: 30 * d, speed: 70 + d * 8,   damage: 12, color: "#ff3b5c", glow: "#ff7a8e", shape: "circle"   as const },
       { name: "brute",   radius: 24, hp: 90 * d, speed: 42 + d * 4,   damage: 20, color: "#a855f7", glow: "#d8b4fe", shape: "square"   as const },
     ];
-    // weighted: more grunts/runners/wasps, fewer brutes
-    const weights = [0.30, 0.22, 0.13, 0.18, 0.17];
+    // weighted by new order: runner, wasp, shocker, grunt, brute (fewer brutes)
+    const weights = [0.22, 0.17, 0.18, 0.30, 0.13];
     const roll = Math.random();
     let acc = 0; let pick = archetypes[0];
     for (let i = 0; i < archetypes.length; i++) { acc += weights[i]; if (roll <= acc) { pick = archetypes[i]; break; } }
