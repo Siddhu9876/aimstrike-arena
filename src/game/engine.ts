@@ -177,6 +177,20 @@ export class GameEngine {
   };
   private onTouchEnd = () => { this.mouseDown = false; };
 
+  private onKeyDown = (e: KeyboardEvent) => {
+    const k = e.key.toLowerCase();
+    this.keys[k] = true;
+    if (e.code === "Space" || k === " ") {
+      e.preventDefault();
+      this.spaceDown = true;
+    }
+  };
+  private onKeyUp = (e: KeyboardEvent) => {
+    const k = e.key.toLowerCase();
+    this.keys[k] = false;
+    if (e.code === "Space" || k === " ") this.spaceDown = false;
+  };
+
   private loop = (t: number) => {
     if (!this.running) return;
     const dt = Math.min(0.05, (t - this.last) / 1000);
